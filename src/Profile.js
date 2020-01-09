@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
-import {
-  Person,
-} from 'blockstack';
+import { Person } from 'blockstack';
 
 const avatarFallbackImage = 'https://s3.amazonaws.com/onename/avatar-placeholder.png';
 
@@ -17,8 +15,64 @@ export default class Profile extends Component {
   	  	avatarUrl() {
   	  	  return avatarFallbackImage;
   	  	},
-  	  },
+      },
+      newText:"",
+      newTitle:"",
+      title:"",
+      text:"",
   	};
+  }
+
+  saveNewArticle(title, text) {
+    const { userSession } = this.props
+
+    let article = {
+      title: title.trim(),
+      text: text.trim(),
+      created_at: Date.now()
+    }
+
+    const options = { encrypt: true }
+    userSession.putFile('article.json', JSON.stringify(article), options)
+      .then(() => {
+        this.setState({
+          newText: article.text,
+          newTitle: article.title,
+        })
+      })
+  }
+
+  fetchData() {
+    const { userSession } = this.props
+    const options = { decrypt: true }
+    userSession.getFile('article.json', options)
+      .then((file) => {
+        var article = JSON.parse(file || '[]')
+        console.log(article)
+        this.setState({
+          title:article.title,
+          text:article.text,
+        })
+      })
+      .finally(() => {
+        console.log("read over")
+      })
+  }
+
+  handleNewTitleChange(event) {
+    this.setState({newTitle: event.target.value})
+  }
+
+  handleNewTextChange(event) {
+    this.setState({newText: event.target.value})
+  }
+
+  handleNewArticleSubmit(event) {
+    this.saveNewArticle(this.state.newTitle, this.state.newText)
+    this.setState({
+      newTitle: "",
+      newText: "",
+    })
   }
 
   render() {
@@ -41,8 +95,33 @@ export default class Profile extends Component {
             Logout
           </button>
         </p>
+        <br/>
+        <input
+          value={this.state.newTitle}
+          onChange={e => this.handleNewTitleChange(e)}
+          placeholder="输入标题"
+        />
+        <br/>
+        <textarea className="input-status"
+                 value={this.state.newText}
+                 onChange={e => this.handleNewTextChange(e)}
+                 placeholder="输入文章"
+               />
+        <br/>
+        <button
+                 className="btn btn-primary btn-lg"
+                 onClick={e => this.handleNewArticleSubmit(e)}
+                >
+                提交
+        </button>
+        <p>  题目:{this.state.title}</p>
+        <p> {this.state.text} </p>
       </div> : null
     );
+  }
+
+  componentDidMount() {
+    this.fetchData()
   }
 
   componentWillMount() {
